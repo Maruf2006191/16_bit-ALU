@@ -1,0 +1,184 @@
+
+Power Net Detected:
+    Voltage	    Name
+    0.00V	    VSS
+    1.10V	    VDD
+Load RC corner of view func@BC_rcbest0.hold
+
+Begin Power Analysis
+
+    0.00V	    VSS
+    1.10V	    VDD
+
+Begin Processing Timing Library for Power Calculation
+
+Begin Processing Timing Library for Power Calculation
+
+
+
+Begin Processing Power Net/Grid for Power Calculation
+
+Ended Processing Power Net/Grid for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total)=1148.81MB/1148.81MB)
+
+Begin Processing Timing Window Data for Power Calculation
+
+func_clk(50MHz) CK: assigning clock func_clk to net clk
+Ended Processing Timing Window Data for Power Calculation: (cpu=0:00:00, real=0:00:00, mem(process/total)=1148.91MB/1148.91MB)
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total)=1148.95MB/1148.95MB)
+
+Begin Processing Signal Activity
+
+
+Starting Levelizing
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT)
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 10%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 20%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 30%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 40%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 50%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 60%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 70%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 80%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 90%
+
+Finished Levelizing
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT)
+
+Starting Activity Propagation
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT)
+** INFO:  (VOLTUS_POWR-1356): No default input activity has been set. Defaulting to 0.2.
+Use 'set_default_switching_activity -input_activity' command to change the default activity value.
+
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 10%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 20%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 30%
+
+Finished Activity Propagation
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT)
+Ended Processing Signal Activity: (cpu=0:00:00, real=0:00:00, mem(process/total)=1149.13MB/1149.13MB)
+
+Begin Power Computation
+
+      ----------------------------------------------------------
+      # of cell(s) missing both power/leakage table: 0
+      # of cell(s) missing power table: 0
+      # of cell(s) missing leakage table: 0
+      # of MSMV cell(s) missing power_level: 0
+      ----------------------------------------------------------
+
+
+
+Starting Calculating power
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT)
+ ... Calculating switching power
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 10%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 20%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 30%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 40%
+2026-Mar-11 01:15:30 (2026-Mar-10 19:15:30 GMT): 50%
+ ... Calculating internal and leakage power
+2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT): 60%
+2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT): 70%
+2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT): 80%
+2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT): 90%
+
+Finished Calculating power
+2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT)
+Ended Power Computation: (cpu=0:00:00, real=0:00:00, mem(process/total)=1149.47MB/1149.47MB)
+
+Begin Processing User Attributes
+
+Ended Processing User Attributes: (cpu=0:00:00, real=0:00:00, mem(process/total)=1149.50MB/1149.50MB)
+
+Ended Power Analysis: (cpu=0:00:00, real=0:00:00, mem(process/total)=1149.52MB/1149.52MB)
+
+Begin Static Power Report Generation
+*----------------------------------------------------------------------------------------
+*	Innovus 16.10-p004_1 (64bit) 05/12/2016 14:48 (Linux 2.6.18-194.el5)
+*	
+*
+* 	Date & Time:	2026-Mar-11 01:15:31 (2026-Mar-10 19:15:31 GMT)
+*
+*----------------------------------------------------------------------------------------
+*
+*	Design: gated
+*
+*	Liberty Libraries used:
+*	        func@BC_rcbest0.hold: /home/cad/VLSI2Lab/Digital/library/fast_vdd1v0_basicCells.lib
+*
+*	Power Domain used:
+*		Rail:        VDD 	Voltage:        1.1
+*
+*       Power View : func@BC_rcbest0.hold
+*
+*       User-Defined Activity : N.A.
+*
+*       Activity File: N.A.
+*
+*       Hierarchical Global Activity: N.A.
+*
+*       Global Activity: N.A.
+*
+*       Sequential Element Activity: 0.200000
+*
+*       Primary Input Activity: 0.200000
+*
+*       Default icg ratio: N.A.
+*
+*       Global Comb ClockGate Ratio: N.A.
+*
+*	Power Units = 1mW
+*
+*	Time Units = 1e-09 secs
+*
+*       report_power
+*
+-----------------------------------------------------------------------------------------
+
+
+Total Power
+-----------------------------------------------------------------------------------------
+Total Internal Power:        0.04298114 	   56.5154%
+Total Switching Power:       0.03286546 	   43.2144%
+Total Leakage Power:         0.00020555 	    0.2703%
+Total Power:                 0.07605215
+-----------------------------------------------------------------------------------------
+
+
+Group                           Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+Sequential                       0.01295     0.00544   2.153e-05     0.01841       24.21
+Macro                                  0           0           0           0           0
+IO                                     0           0           0           0           0
+Combinational                    0.03003     0.02743    0.000184     0.05764       75.79
+Clock (Combinational)                  0           0           0           0           0
+Clock (Sequential)                     0           0           0           0           0
+-----------------------------------------------------------------------------------------
+Total                            0.04298     0.03287   0.0002055     0.07605         100
+-----------------------------------------------------------------------------------------
+
+
+Rail                  Voltage   Internal   Switching     Leakage       Total  Percentage 
+                                Power      Power         Power         Power  (%)        
+-----------------------------------------------------------------------------------------
+VDD                       1.1    0.04298     0.03287   0.0002055     0.07605         100
+ 
+ 
+-----------------------------------------------------------------------------------------
+*	Power Distribution Summary: 
+* 		Highest Average Power:     gated_operandB_reg[3] (DFFRX2): 	 0.0005077
+* 		Highest Leakage Power:     gated_operandB_reg[1] (DFFRX2): 	 4.924e-07
+* 		Total Cap: 	3.95192e-12 F
+* 		Total instances in design:  1503
+* 		Total instances in design with no power:     0
+*                Total instances in design with no activty:     0
+
+* 		Total Fillers and Decap:     0
+-----------------------------------------------------------------------------------------
+ 
+Ended Static Power Report Generation: (cpu=0:00:00, real=0:00:00,
+mem(process/total)=1149.70MB/1149.70MB)
