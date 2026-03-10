@@ -1,0 +1,29 @@
+# setting up time units
+set_units -time 1ns -capacitance pF
+
+# setting the clock period 20ns, as period = 1/freq, here, freq = 50MHz
+set clock_period 20; 
+
+set top_module "alu_clock_gated"
+
+set clock_port {clk};
+set reset_port {rst_n};
+
+# setting the input ports in a list to a variable (Updated for ALU)
+set input_ports {A B opcode enable} ; 
+
+# setting the output ports in a list to a variable (Updated for ALU)
+set output_ports {result zero_flag overflow_flag} ; 
+
+# define the clocks (50% duty cycle: high for 10ns, low for 10ns)
+create_clock -period ${clock_period} -waveform {0 10} -name func_clk [get_ports ${clock_port}]
+
+# setting up constraints for the reset signal
+set_multicycle_path -setup 3 -from [get_ports ${reset_port}]
+set_multicycle_path -hold 2 -from [get_ports ${reset_port}]
+
+# Define input delays
+set_input_delay 0.4 -clock [get_clocks {func_clk}] [get_ports ${input_ports}]
+
+# Define output delays
+set_output_delay 0.6 -clock [get_clocks {func_clk}] [get_ports ${output_ports}]

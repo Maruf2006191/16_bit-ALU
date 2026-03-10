@@ -1,0 +1,65 @@
+# ----------------------------------------------------------------------
+# Cadence Genus Logic Synthesis Script
+# ----------------------------------------------------------------------
+
+# Force Legacy UI to match your server's setup
+::legacy::set_attribute common_ui false / ;
+
+# 1. Setup variables
+set DESIGN gated
+
+# Added the library path from your previous script
+set PDK_DIR "/home/cad/VLSI2Lab/Digital/library/"
+set LIB_PATH "slow_vdd1v0_basicCells.lib" 
+
+# Create output directories if they don't exist
+file mkdir reports
+file mkdir outputs
+
+# 2. Load the library and search paths
+set_attribute init_lib_search_path $PDK_DIR /
+set_attribute library $LIB_PATH /
+
+# Apply your lab's cell exclusion rules
+set_dont_use [get_lib_cells CLK*]
+set_dont_use [get_lib_cells SDFF*]
+set_dont_use [get_lib_cells DLY*]
+set_dont_use [get_lib_cells HOLD*]
+
+# 3. Read and elaborate the RTL
+# Note: Using -sv to support SystemVerilog semantics properly.
+# Make sure your 'gated.sv' file ONLY contains the ALU module and NOT the testbench!
+read_hdl -sv gated.sv
+elaborate $DESIGN
+
+# 4. Apply Constraints
+# Using your previously named 'test.sdc' file
+read_sdc gated.sdc
+
+# 5. Synthesize the design 
+# syn_generic translates RTL to unmapped logic
+syn_generic 
+# syn_map maps the logic to your specific standard cell library
+syn_map     
+# syn_opt performs timing and area optimizations
+syn_opt     
+   
+# --- NEW: Read Switching Activity ---
+# 'testbench/dut' is the hierarchy path to your ALU in the testbench
+# Make sure waves.vcd is in your synthesis folder
+read_vcd -vcd_module testbench/dut waves.vcd
+# 6. Generate Reports (crucial for your DVFS Phase 3 calculations)
+report timing > reports/${DESIGN}_timing.rpt
+report power  > reports/${DESIGN}_power.rpt
+report area   > reports/${DESIGN}_area.rpt
+report gates  > reports/${DESIGN}_gates.rpt
+
+# 7. Export files for Innovus (Phase 4 Physical Design)
+write -mapped > outputs/${DESIGN}_synth.v
+write_sdc > outputs/${DESIGN}_synth.sdc
+write_script > outputs/script.tcl
+
+puts "======================================================="
+puts "Synthesis Complete! Check the 'reports' directory."
+puts "======================================================="
+quit

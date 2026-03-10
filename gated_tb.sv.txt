@@ -1,0 +1,290 @@
+// 1. Interface Definition
+interface alu_if(input logic clk);
+    logic             rst_n;
+    logic             enable;
+    logic [15:0]      A;
+    logic [15:0]      B;
+    logic [3:0]       opcode;
+    logic [15:0]      result;
+    logic             zero_flag;
+    logic             overflow_flag;
+endinterface
+
+// 2. Transaction Object
+class alu_transaction;
+    rand bit [15:0] A;
+    rand bit [15:0] B;
+    rand bit [3:0]  opcode;
+    bit [15:0]      result;
+    bit             zero_flag;
+    bit             overflow_flag;
+
+    // Constrain opcodes to the 10 defined in your methodology
+    constraint valid_opcodes {
+        opcode >= 4'b0000;
+        opcode <= 4'b1001;
+    }
+
+    // Prevent divide-by-zero boundary cases most of the time
+    constraint div_by_zero {
+        if (opcode == 4'b0011) B != 16'h0000;
+    }
+    
+    function void display(string name);
+        $display("[%s] Opcode: %0h | A: %0h | B: %0h | Result: %0h | Z: %0b | OVF: %0b", 
+                 name, opcode, A, B, result, zero_flag, overflow_flag);
+    endfunction
+endclass
+
+// 3. Generator
+class alu_generator;
+    mailbox gen2driv;
+    event   ended;
+    int     repeat_count;
+
+    function new(mailbox gen2driv, int repeat_count);
+        this.gen2driv = gen2driv;
+        this.repeat_count = repeat_count;
+    endfunction
+
+    task main();
+        for(int i = 0; i < repeat_count; i++) begin
+            alu_transaction trans = new();
+          if(!trans.randomize()) $fatal(1, "Gen:: trans randomization failed");
+            gen2driv.put(trans);
+        end
+        -> ended; // trigger ended event when done
+    endtask
+endclass
+
+// 4. Driver
+class alu_driver;
+    virtual alu_if vif;
+    mailbox gen2driv;
+
+    function new(virtual alu_if vif, mailbox gen2driv);
+        this.vif = vif;
+        this.gen2driv = gen2driv;
+    endfunction
+
+    task main();
+        forever begin
+            alu_transaction trans;
+            gen2driv.get(trans);
+            
+            @(posedge vif.clk);
+            vif.enable <= 1'b1;
+            vif.A      <= trans.A;
+            vif.B      <= trans.B;
+            vif.opcode <= trans.opcode;
+            
+            // Wait 2 cycles for the pipelined ALU to compute and register the result
+            @(posedge vif.clk);
+            @(posedge vif.clk);
+            vif.enable <= 1'b0; // Turn off enable to test gating
+        end
+    endtask
+endclass
+
+// 5. Monitor
+class alu_monitor;
+    virtual alu_if vif;
+    mailbox mon2scb;
+
+    function new(virtual alu_if vif, mailbox mon2scb);
+        this.vif = vif;
+        this.mon2scb = mon2scb;
+    endfunction
+
+    task main();
+        forever begin
+            alu_transaction trans;
+            trans = new();
+            
+            // Wait for enable to go high, then wait 2 cycles for output to be ready
+            @(posedge vif.clk iff vif.enable);
+            trans.A      = vif.A;
+            trans.B      = vif.B;
+            trans.opcode = vif.opcode;
+            
+            @(posedge vif.clk);
+            @(posedge vif.clk); // Result is ready on this edge
+            
+            trans.result        = vif.result;
+            trans.zero_flag     = vif.zero_flag;
+            trans.overflow_flag = vif.overflow_flag;
+            
+            mon2scb.put(trans);
+        end
+    endtask
+endclass
+
+// 6. Scoreboard (Reference Model)
+class alu_scoreboard;
+    mailbox mon2scb;
+    int no_transactions;
+    int error_count;
+
+    function new(mailbox mon2scb);
+        this.mon2scb = mon2scb;
+        this.no_transactions = 0;
+        this.error_count = 0;
+    endfunction
+
+    task main();
+        forever begin
+            alu_transaction trans;
+            bit [15:0] expected_result;
+            bit        expected_zero;
+            bit        expected_ovf;
+            bit [16:0] temp_add_sub;
+            
+            mon2scb.get(trans);
+            
+            expected_result = 0;
+            expected_ovf = 0;
+
+            // SystemVerilog Golden Reference Model
+            case(trans.opcode)
+                4'b0000: begin
+                    temp_add_sub = trans.A + trans.B;
+                    expected_result = temp_add_sub[15:0];
+                    expected_ovf = (trans.A[15] == trans.B[15]) && (expected_result[15] != trans.A[15]);
+                end
+                4'b0001: begin
+                    temp_add_sub = trans.A - trans.B;
+                    expected_result = temp_add_sub[15:0];
+                    expected_ovf = (trans.A[15] != trans.B[15]) && (expected_result[15] != trans.A[15]);
+                end
+                4'b0010: expected_result = trans.A * trans.B;
+                4'b0011: expected_result = (trans.B != 0) ? (trans.A / trans.B) : 16'h0;
+                4'b0100: expected_result = trans.A & trans.B;
+                4'b0101: expected_result = trans.A | trans.B;
+                4'b0110: expected_result = trans.A ^ trans.B;
+                4'b0111: expected_result = ~trans.A;
+                4'b1000: expected_result = trans.A << 1;
+                4'b1001: expected_result = trans.A >> 1;
+                default: expected_result = 16'h0;
+            endcase
+            
+            expected_zero = (expected_result == 16'h0000) ? 1'b1 : 1'b0;
+            
+            if(trans.result != expected_result || trans.zero_flag != expected_zero || trans.overflow_flag != expected_ovf) begin
+                $display("-----------------------------------------");
+                $display("ERROR DETECTED!");
+                trans.display("ACTUAL");
+                $display("[EXPECTED] Result: %0h | Z: %0b | OVF: %0b", expected_result, expected_zero, expected_ovf);
+                $display("-----------------------------------------");
+                error_count++;
+            end else begin
+                $display("PASS: Opcode: %0h | A: %0h B: %0h -> Result: %0h", trans.opcode, trans.A, trans.B, trans.result);
+            end
+            
+            no_transactions++;
+        end
+    endtask
+endclass
+
+// 7. Environment
+class alu_environment;
+    alu_generator  gen;
+    alu_driver     driv;
+    alu_monitor    mon;
+    alu_scoreboard scb;
+    
+    mailbox gen2driv;
+    mailbox mon2scb;
+    
+    virtual alu_if vif;
+
+    function new(virtual alu_if vif, int num_transactions);
+        this.vif = vif;
+        gen2driv = new();
+        mon2scb  = new();
+        
+        gen  = new(gen2driv, num_transactions);
+        driv = new(vif, gen2driv);
+        mon  = new(vif, mon2scb);
+        scb  = new(mon2scb);
+    endfunction
+    
+    task pre_test();
+        vif.rst_n = 0;
+        vif.enable = 0;
+        vif.A = 0;
+        vif.B = 0;
+        vif.opcode = 0;
+        #25 vif.rst_n = 1;
+    endtask
+    
+    task test();
+        fork
+            gen.main();
+            driv.main();
+            mon.main();
+            scb.main();
+        join_any
+    endtask
+    
+    task post_test();
+        wait(gen.ended.triggered);
+        wait(gen.repeat_count == scb.no_transactions);
+    endtask
+    
+    task run();
+        pre_test();
+        test();
+        post_test();
+        $display("===================================================");
+        $display("TEST COMPLETE. Total Transactions: %0d | Errors: %0d", scb.no_transactions, scb.error_count);
+        $display("===================================================");
+        $finish;
+    endtask
+endclass
+
+// 8. Top-Level Module
+module testbench;
+    bit clk;
+    
+    // Clock generation: 20ns period (50MHz) [cite: 40, 48]
+    always #10 clk = ~clk;
+
+    // Interface Instantiation
+    alu_if vif(clk);
+
+    // DUT Instantiation
+    alu_clock_gated #(
+        .WIDTH(16)
+    ) dut (
+        .clk(vif.clk),
+        .rst_n(vif.rst_n),
+        .enable(vif.enable),
+        .A(vif.A),
+        .B(vif.B),
+        .opcode(vif.opcode),
+        .result(vif.result),
+        .zero_flag(vif.zero_flag),
+        .overflow_flag(vif.overflow_flag)
+    );
+
+    // Environment Instantiation
+    alu_environment env;
+
+    initial begin
+        clk = 0;
+        // Run test with 50 random transactions
+        env = new(vif, 50);
+        env.run();
+    end
+
+    // Dump waves for debugging in Cadence SimVision [cite: 67]
+    initial begin
+        $shm_open("waves.shm");
+        $shm_probe("AS");
+    end
+  // Dump standard VCD for Genus power analysis
+    initial begin
+        $dumpfile("waves.vcd");
+        $dumpvars(0, testbench); // '0' means dump all variables under the 'testbench' instance
+    end
+endmodule

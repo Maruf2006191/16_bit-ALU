@@ -1,0 +1,96 @@
+# ==============================================================================
+# Cadence Innovus Physical Design Flow (Phase 4)
+# Target: 16-bit ALU (Gated)
+# ==============================================================================
+
+puts "--- Step 1: Design Import & Timing Setup ---"
+# Note: Ensure your synthesized netlist (gated_synth.v) is in this folder!
+set init_verilog "gated_synth.v"
+set init_top_cell "gated"
+set init_lef_file "/home/cad/VLSI2Lab/Digital/library/gsclib045_tech.lef /home/cad/VLSI2Lab/Digital/library/gsclib045_macro.lef"
+set init_mmmc_file "alu.view"
+set init_pwr_net "VDD"
+set init_gnd_net "VSS"
+
+init_design
+
+puts "--- Step 2: Floorplanning & Pin Placement ---"
+# Set Aspect Ratio to 1.0, Core Utilization to 50%
+floorPlan -r 1.0 0.5 10.0 10.0 10.0 10.0
+
+# Place ALU input pins on the Left edge (Edge 1)
+editPin -pin {A[*] B[*] opcode[*] clk rst_n enable} -edge 1 -spreadType center -layer Metal3
+# Place ALU output pins on the Right edge (Edge 3)
+editPin -pin {result[*] zero_flag overflow_flag} -edge 3 -spreadType center -layer Metal3
+
+puts "--- Step 3: Power Planning (Rings & Stripes) ---"
+# Connect global power and ground
+globalNetConnect VDD -type pgpin -pin VDD -inst *
+globalNetConnect VSS -type pgpin -pin VSS -inst *
+
+# Add power rings around the core
+addRing -nets {VDD VSS} -type core_rings -width 2 -spacing 1 -layer {top Metal3 bottom Metal3 left Metal4 right Metal4}
+
+# Add vertical power stripes inside the core
+addStripe -nets {VDD VSS} -layer Metal4 -direction vertical -width 0.16 -spacing 0.84 -set_to_set_distance 2
+
+# Route the standard cell power rails (Metal 1) to the stripes
+sroute -connect { blockPin padPin padRing corePin floatingStripe } -layerChangeRange { Metal1 Metal4 } -blockPinTarget { nearestTarget } -padPinPortConnect { allPort oneGeom } -padPinTarget { nearestTarget } -corePinTarget { firstAfterRowEnd } -floatingStripeTarget { blockring padring ring stripe ringpin blockpin followpin } -allowJogging 1 -crossoverViaLayerRange { Metal1 Metal4 } -nets { VDD VSS } -allowLayerChange 1 -targetViaLayerRange { Metal1 Metal4 }
+
+puts "--- Step 4: Standard Cell Placement ---"
+place_opt_design
+saveDesign db/placed.enc
+
+puts "--- Step 5: Clock Tree Synthesis (CTS) ---"
+# Setup clock routing rules
+create_route_type -name clkroute -bottom_preferred_layer Metal3 -top_preferred_layer Metal4
+set_ccopt_property route_type clkroute -net_type trunk
+set_ccopt_property route_type clkroute -net_type leaf
+set_ccopt_property buffer_cells {CLKBUFX8 CLKBUFX12}
+set_ccopt_property inverter_cells {CLKINVX8 CLKINVX12}
+
+# Generate spec, synthesize the clock tree, and optimize timing
+create_ccopt_clock_tree_spec -file ccopt.spec
+source ccopt.spec
+ccopt_design -cts
+optDesign -postCTS
+saveDesign db/cts.enc
+
+puts "--- Step 6: NanoRoute & Post-Route Optimization ---"
+# Setup routing for Timing and Signal Integrity (SI)
+setNanoRouteMode -quiet -timingEngine CTE
+setNanoRouteMode -quiet -routeWithTimingDriven 1
+setNanoRouteMode -quiet -routeWithSiDriven 1
+routeDesign -globalDetail
+
+# Extract parasitics and fix post-route timing violations
+setExtractRCMode -engine postRoute
+setExtractRCMode -effortLevel high
+setAnalysisMode -analysisType onChipVariation -cppr both
+timeDesign -postRoute
+optDesign -postRoute -setup -hold
+saveDesign db/postroute.enc
+
+puts "--- Step 7: Filler Cells & Physical Verification ---"
+# Add filler cells to prevent DRC errors
+addFiller -cell {FILL8 FILL64 FILL4 FILL32 FILL2 FILL16 FILL1} -prefix FILLER
+
+# Run Design Rule Check and Connectivity Verification
+verifyGeometry
+verifyConnectivity
+
+puts "--- Step 8: Generating Final Reports & Exporting GDS ---"
+# Create a folder for the final Innovus reports
+file mkdir reports_innovus
+report_power > reports_innovus/post_layout_power.rpt
+report_timing > reports_innovus/post_layout_timing.rpt
+
+# Save final database
+saveDesign db/final_routed.enc
+
+# Export GDS using the lab's script
+source /home/cad/VLSI2Lab/Digital/PnR/export_gds.tcl
+
+puts "====================================================================="
+puts "PHYSICAL DESIGN COMPLETE! Check the reports_innovus folder for power."
+puts "====================================================================="
