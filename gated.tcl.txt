@@ -27,8 +27,6 @@ set_dont_use [get_lib_cells DLY*]
 set_dont_use [get_lib_cells HOLD*]
 
 # 3. Read and elaborate the RTL
-# Note: Using -sv to support SystemVerilog semantics properly.
-# Make sure your 'gated.sv' file ONLY contains the ALU module and NOT the testbench!
 read_hdl -sv gated.sv
 elaborate $DESIGN
 
@@ -46,7 +44,6 @@ syn_opt
    
 # --- NEW: Read Switching Activity ---
 # 'testbench/dut' is the hierarchy path to your ALU in the testbench
-# Make sure waves.vcd is in your synthesis folder
 read_vcd -vcd_module testbench/dut waves.vcd
 # 6. Generate Reports (crucial for your DVFS Phase 3 calculations)
 report timing > reports/${DESIGN}_timing.rpt
@@ -62,4 +59,5 @@ write_script > outputs/script.tcl
 puts "======================================================="
 puts "Synthesis Complete! Check the 'reports' directory."
 puts "======================================================="
+
 quit
