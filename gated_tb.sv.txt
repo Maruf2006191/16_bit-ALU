@@ -1,4 +1,4 @@
-// 1. Interface Definition
+    // 1. Interface Definition
 interface alu_if(input logic clk);
     logic             rst_n;
     logic             enable;
@@ -119,6 +119,7 @@ class alu_monitor;
     endtask
 endclass
 
+
 // 6. Scoreboard (Reference Model)
 class alu_scoreboard;
     mailbox mon2scb;
@@ -184,6 +185,48 @@ class alu_scoreboard;
         end
     endtask
 endclass
+// 6.5 Coverage Model
+class alu_coverage;
+    alu_transaction trans;
+
+    // Define the Covergroup
+    covergroup cg_alu;
+        // Check if all 10 opcodes were randomly generated
+        cp_opcode: coverpoint trans.opcode {
+            bins ADD   = {4'b0000};
+            bins SUB   = {4'b0001};
+            bins MUL   = {4'b0010};
+            bins DIV   = {4'b0011};
+            bins AND   = {4'b0100};
+            bins OR    = {4'b0101};
+            bins XOR   = {4'b0110};
+            bins NOT   = {4'b0111};
+            bins LSHIFT= {4'b1000};
+            bins RSHIFT= {4'b1001};
+        }
+        
+        // Check if the flags were ever triggered
+        cp_zero: coverpoint trans.zero_flag {
+            bins zero_triggered = {1'b1};
+            bins non_zero = {1'b0};
+        }
+        
+        cp_overflow: coverpoint trans.overflow_flag {
+            bins overflow_occurred = {1'b1};
+            bins no_overflow = {1'b0};
+        }
+    endgroup
+
+    function new();
+        cg_alu = new();
+    endfunction
+
+    // Function to sample the coverage
+    function void sample(alu_transaction t);
+        this.trans = t;
+        cg_alu.sample();
+    endfunction
+endclass
 
 // 7. Environment
 class alu_environment;
@@ -231,15 +274,17 @@ class alu_environment;
         wait(gen.repeat_count == scb.no_transactions);
     endtask
     
-    task run();
+        task run();
         pre_test();
         test();
         post_test();
         $display("===================================================");
         $display("TEST COMPLETE. Total Transactions: %0d | Errors: %0d", scb.no_transactions, scb.error_count);
+        $display("TOTAL FUNCTIONAL COVERAGE: %0.2f%%", mon.cov.cg_alu.get_inst_coverage()); // <-- Add this print statement
         $display("===================================================");
         $finish;
     endtask
+
 endclass
 
 // 8. Top-Level Module
